@@ -1,0 +1,59 @@
+version: '3.5'
+services:
+  mysql:
+    image: mariadb:10.5
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 'mysql'
+      MYSQL_USER: 'mysql'
+      MYSQL_PASSWORD: 'mysql'
+      MYSQL_DATABASE: 'drupal'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./log/mysql:/var/log/mysql
+    networks:
+      - default
+    restart: always
+    hostname: mysql-service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.1.3
+    links:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    hostname: phpmyadmin-service
+    ports:
+      - '81:80'
+  smtp:
+    image: mailhog/mailhog
+    networks:
+      - default
+    restart: always
+    hostname: smtp-service
+    ports:
+      - '82:8025'
+  web:
+    build:
+      context: ./Dockerfiles
+      dockerfile: Dockerfile-web
+    environment:
+      php.ext.xdebug: '1'
+      php.var.memory_limit: '512m'
+    volumes:
+      - ./log/apache:/var/log/apache2
+      - ../app:/var/www/html
+    networks:
+      - default
+    depends_on:
+      - mysql
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+volumes:
+  mysql_data: {}
+networks:
+  default:
